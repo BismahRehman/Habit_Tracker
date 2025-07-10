@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="5dp"
+    card_view:cardCornerRadius="16dp"
+    card_view:cardElevation="6dp"
+    android:background="@android:color/white">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/habitTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Wake Up Early"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#333" />
+
+        <!-- Description -->
+        <TextView
+            android:id="@+id/habitDescription"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/habitTitle"
+            android:layout_marginTop="4dp"
+            android:text="Wake up at 6 AM to start the day"
+            android:textSize="14sp"
+            android:textColor="#666" />
+
+        <!-- Streak Icon and Count -->
+        <ImageView
+            android:id="@+id/streak"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="4dp"
+            android:layout_below="@id/habitTitle" />
+
+        <TextView
+            android:id="@+id/streakCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@id/streak"
+            android:layout_toStartOf="@id/streak"
+            android:text="🔥 3 days"
+            android:textSize="14sp"
+            android:textColor="#FF5722" />
+
+        <!-- Count (Progress) -->
+        <TextView
+            android:id="@+id/count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/habitDescription"
+            android:layout_marginTop="10dp"
+            android:text="2/3 completed"
+            android:textColor="#009688"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnDone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✔ Done"
+            android:layout_below="@+id/count"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="#4CAF50"
+            android:textColor="#fff"/>
+
+        <TextView
+            android:id="@+id/habitDays"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Days: "
+            android:textStyle="italic"
+            android:layout_below="@+id/btnDone"
+            android:textColor="#666"
+            android:layout_marginTop="4dp"/>
+
+    </RelativeLayout>
+</androidx.cardview.widget.CardView>
