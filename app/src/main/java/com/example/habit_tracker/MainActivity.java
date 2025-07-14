@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (id == R.id.nav_home) {
                 loadFragment(new HomeFragment());
-                    return true;
+                return true;
 
             } else if (id == R.id.nav_noted) {
                 loadFragment(new NotesFragment());
@@ -95,4 +95,3 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
     }
 }
-

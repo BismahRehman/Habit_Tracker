@@ -11,20 +11,29 @@ public class HabitModel {
     private long streak;
     private List<String> days;
 
+    private String lastUpdatedDate;
+    private boolean reminder;
+    private String reminderTime;
+
+
     public HabitModel() {} // Required by Firestore
 
-    public HabitModel(String name, String description, long goal, long currentCount, long streak, List<String> days) {
+    public HabitModel(String name, String description, long goal, long currentCount, long streak, List<String> days, String lastUpdatedDate) {
         this.name = name;
         this.description = description;
         this.goal = goal;
         this.currentCount = currentCount;
         this.streak = streak;
         this.days = days;
+        this.lastUpdatedDate = lastUpdatedDate;
+
 
     }
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+
+
 
     public String getName() { return name; }
     public String getDescription() { return description; }
@@ -38,6 +47,18 @@ public class HabitModel {
 
     public List<String> getDays() { return days; }
     public void setDays(List<String> days) { this.days = days; }
+   //setLastUpdatedDate
+    public void setLastUpdatedDate(String lastUpdatedDate) { this.lastUpdatedDate = lastUpdatedDate; }
+
+    public String getLastUpdatedDate() { return lastUpdatedDate; }
+
+
+    public boolean isReminder() { return reminder; }
+    public void setReminder(boolean reminder) { this.reminder = reminder; }
+
+    public String getReminderTime() { return reminderTime; }
+    public void setReminderTime(String reminderTime) { this.reminderTime = reminderTime; }
+
 
 
 }

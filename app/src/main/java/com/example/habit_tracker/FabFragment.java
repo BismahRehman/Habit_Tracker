@@ -73,8 +73,26 @@ public class FabFragment extends Fragment {
             docIdToEdit = getArguments().getString("docId");
             etHabitName.setText(getArguments().getString("name"));
             etHabitDesc.setText(getArguments().getString("description"));
-            etGoal.setText(String.valueOf(getArguments().getInt("goal")));
-            // Optional: selectedTime = ...
+            etGoal.setText(String.valueOf(getArguments().getLong("goal")));
+            // ✅ Restore reminder
+            boolean reminder = getArguments().getBoolean("reminder", false);
+            reminderCheck.setChecked(reminder);
+            selectedTime = getArguments().getString("reminderTime", "");
+            if (!selectedTime.isEmpty()) {
+                timeText.setText("Reminder Time: " + selectedTime);
+            }
+
+            // ✅ Restore selected days
+            ArrayList<String> selectedDays = getArguments().getStringArrayList("days");
+            if (selectedDays != null) {
+                sun.setChecked(selectedDays.contains("Sun"));
+                mon.setChecked(selectedDays.contains("Mon"));
+                tue.setChecked(selectedDays.contains("Tue"));
+                wed.setChecked(selectedDays.contains("Wed"));
+                thu.setChecked(selectedDays.contains("Thu"));
+                fri.setChecked(selectedDays.contains("Fri"));
+                sat.setChecked(selectedDays.contains("Sat"));
+            }
         }
 
         return view;
@@ -98,7 +116,7 @@ public class FabFragment extends Fragment {
         String desc = etHabitDesc.getText().toString().trim();
         String goalStr = etGoal.getText().toString().trim();
 
-        if (TextUtils.isEmpty(name) || TextUtils.isEmpty(desc)) {
+        if (TextUtils.isEmpty(name) || TextUtils.isEmpty(desc) || TextUtils.isEmpty(goalStr)){
             Toast.makeText(getContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
             return;
         }

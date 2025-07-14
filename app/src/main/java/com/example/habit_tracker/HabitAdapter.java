@@ -70,11 +70,8 @@ public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHol
             FirebaseFirestore.getInstance()
                     .collection("habits")
                     .document(habit.getId()) // assumes habit has setId from Firestore
-//
-
                     .update("currentCount", habit.getCurrentCount(),
                             "streak", habit.getStreak())
-
                     .addOnSuccessListener(unused -> {
                         notifyItemChanged(holder.getAdapterPosition());
                         Toast.makeText(v.getContext(), "Progress updated!", Toast.LENGTH_SHORT).show();
@@ -120,6 +117,21 @@ public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHol
 
 
         void bind(HabitModel habit) {
+//
+            String todayDate = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
+            // 🔁 Reset count if it's a new day
+            if (!todayDate.equals(habit.getLastUpdatedDate())) {
+                habit.setCurrentCount(0);
+                habit.setLastUpdatedDate(todayDate);
+
+                // Update Firestore with reset count and new date
+                FirebaseFirestore.getInstance()
+                        .collection("habits")
+                        .document(habit.getId())
+                        .update("currentCount", 0, "lastUpdatedDate", todayDate);
+            }//
+
+
             title.setText(habit.getName());
             description.setText(habit.getDescription());
 
@@ -137,14 +149,23 @@ public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHol
                 habitDays.setText("Days: Not set");
             }
 
+            // ✅ Disable doneButton if goal already met
+            if (current >= goal) {
+                doneButton.setEnabled(false);
+                doneButton.setText("Done ✅");
+            } else {
+                doneButton.setEnabled(true);
+                doneButton.setText("Mark Done");
+            }
+
+            // ✅ Update logic
             doneButton.setOnClickListener(v -> {
-                long newCount = current + 1;
+                long newCount = habit.getCurrentCount() + 1;
                 habit.setCurrentCount(newCount);
 
                 if (newCount >= goal) {
-                    habit.setStreak(streakVal + 1);
+                    habit.setStreak(habit.getStreak() + 1);
                 }
-
                 FirebaseFirestore.getInstance()
                         .collection("habits")
                         .document(habit.getId())
@@ -158,6 +179,3 @@ public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHol
         }
     }
 }
-
-
-

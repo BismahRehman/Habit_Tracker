@@ -57,7 +57,7 @@ public class HomeFragment extends Fragment {
         // Initialize adapter once
         adapter = new HabitAdapter(habitList);
         habitRecyclerView.setAdapter(adapter);
-;
+        ;
 
         // Set long click listener for edit
         adapter.setOnItemLongClickListener((habit, position, v) -> {
@@ -73,6 +73,9 @@ public class HomeFragment extends Fragment {
                     bundle.putString("name", habit.getName());
                     bundle.putString("description", habit.getDescription());
                     bundle.putLong("goal", habit.getGoal());
+                    bundle.putString("reminderTime", habit.getReminderTime());
+                    bundle.putBoolean("reminder", habit.isReminder());
+                    bundle.putStringArrayList("days", new ArrayList<>(habit.getDays()));
 // add more if needed
 
                     FabFragment fabFragment = new FabFragment();
@@ -125,7 +128,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadHabits() {
-            String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
         db.collection("habits")
                 .addSnapshotListener((value, error) -> {
