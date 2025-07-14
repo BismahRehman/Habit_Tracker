@@ -20,6 +20,7 @@ public class HabitModel {
         this.currentCount = currentCount;
         this.streak = streak;
         this.days = days;
+
     }
 
     public String getId() { return id; }
@@ -37,4 +38,6 @@ public class HabitModel {
 
     public List<String> getDays() { return days; }
     public void setDays(List<String> days) { this.days = days; }
+
+
 }

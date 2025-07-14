@@ -1,5 +1,6 @@
 package com.example.habit_tracker;
 
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.io.PrintStream;
 import java.util.List;
 
 public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHolder> {
@@ -50,18 +52,29 @@ public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHol
         holder.count.setText(habit.getCurrentCount() + "/" + habit.getGoal() + " completed");
         holder.streakCount.setText("🔥 " + habit.getStreak() + " days");
 
+
+
+
         holder.doneButton.setOnClickListener(v -> {
+            String todayDate = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
+
             long newCount = habit.getCurrentCount() + 1;
             habit.setCurrentCount(newCount);
 
-            if (newCount >= habit.getGoal()) {
-                habit.setStreak(habit.getStreak() + 1);
+            if (newCount >= habit.getGoal()){
+                habit.setStreak(habit.getStreak() +1 );
             }
+
+
 
             FirebaseFirestore.getInstance()
                     .collection("habits")
                     .document(habit.getId()) // assumes habit has setId from Firestore
-                    .update("currentCount", habit.getCurrentCount(), "streak", habit.getStreak())
+//
+
+                    .update("currentCount", habit.getCurrentCount(),
+                            "streak", habit.getStreak())
+
                     .addOnSuccessListener(unused -> {
                         notifyItemChanged(holder.getAdapterPosition());
                         Toast.makeText(v.getContext(), "Progress updated!", Toast.LENGTH_SHORT).show();

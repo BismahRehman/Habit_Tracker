@@ -125,6 +125,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadHabits() {
+            String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
         db.collection("habits")
                 .addSnapshotListener((value, error) -> {
@@ -138,6 +139,9 @@ public class HomeFragment extends Fragment {
                         if (habit != null) {
                             habit.setId(doc.getId());
                             habitList.add(habit);
+
+
+
                         }
                     }
 
