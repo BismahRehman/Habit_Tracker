@@ -4,28 +4,31 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.*;
-import androidx.annotation.*;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import com.github.mikephil.charting.charts.*;
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.data.*;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import com.google.firebase.firestore.*;
-
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ProgressFragment extends Fragment {
 
     private Spinner chartSelector;
+    private ProgressBar progressBar;
+    private TextView errorText;
     private LineChart lineChart;
     private PieChart pieChart;
     private BarChart barChart;
-    private ProgressBar progressBar;
-    private TextView errorText;
 
     private FirebaseFirestore db;
+    private String selectedType = "Weekly";
 
     @Nullable
     @Override
@@ -33,188 +36,222 @@ public class ProgressFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_progress, container, false);
 
-        // UI references
         chartSelector = view.findViewById(R.id.chartSelector);
+        progressBar = view.findViewById(R.id.progressBar);
+        errorText = view.findViewById(R.id.errorText);
         lineChart = view.findViewById(R.id.lineChart);
         pieChart = view.findViewById(R.id.pieChart);
         barChart = view.findViewById(R.id.barChart);
-        progressBar = view.findViewById(R.id.progressBar);
-        errorText = view.findViewById(R.id.errorText);
-
         db = FirebaseFirestore.getInstance();
 
-        // Chart type selector
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
-                android.R.layout.simple_spinner_dropdown_item,
-                new String[]{"Line", "Pie", "Bar"});
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item,
+                Arrays.asList("Weekly", "Weekly Pie", "Weekly Bar", "Monthly", "Yearly"));
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         chartSelector.setAdapter(adapter);
 
         chartSelector.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                selectedType = parent.getItemAtPosition(position).toString();
                 loadHabitData();
             }
-            @Override public void onNothingSelected(AdapterView<?> parent) { }
-        });
 
-        progressBar.setVisibility(View.VISIBLE);
-        hideAllCharts();
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { }
+        });
 
         return view;
     }
 
     private void loadHabitData() {
         progressBar.setVisibility(View.VISIBLE);
-        db.collection("habits").get().addOnSuccessListener(querySnapshot -> {
-            progressBar.setVisibility(View.GONE);
-            processHabitData(querySnapshot.getDocuments());
-        }).addOnFailureListener(e -> {
-            progressBar.setVisibility(View.GONE);
-            errorText.setText("Failed to load habits");
-            errorText.setVisibility(View.VISIBLE);
-            hideAllCharts();
-        });
+        errorText.setVisibility(View.GONE);
+        lineChart.setVisibility(View.GONE);
+        pieChart.setVisibility(View.GONE);
+        barChart.setVisibility(View.GONE);
+
+        db.collection("habits")
+                .get()
+                .addOnSuccessListener(this::processHabitData)
+                .addOnFailureListener(e -> {
+                    progressBar.setVisibility(View.GONE);
+                    errorText.setText("Error loading data");
+                    errorText.setVisibility(View.VISIBLE);
+                });
     }
 
-    private void processHabitData(List<DocumentSnapshot> documents) {
-        Map<Integer, List<Float>> dayToPercentList = new HashMap<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+    private void processHabitData(QuerySnapshot snapshot) {
+        progressBar.setVisibility(View.GONE);
+        Map<String, Float> dataMap = new LinkedHashMap<>();
+        Set<String> labelSet = new LinkedHashSet<>();
 
-        for (DocumentSnapshot doc : documents) {
+        Calendar cal = Calendar.getInstance();
+        switch (selectedType) {
+            case "Weekly":
+            case "Weekly Pie":
+            case "Weekly Bar":
+                String[] days = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+                labelSet.addAll(Arrays.asList(days));
+                break;
+            case "Monthly":
+                for (int i = 1; i <= 31; i++) {
+                    labelSet.add(String.format(Locale.getDefault(), "%02d %s", i, new SimpleDateFormat("MMM", Locale.getDefault()).format(new Date())));
+                }
+                break;
+            case "Yearly":
+                for (int i = 0; i < 12; i++) {
+                    cal.set(Calendar.MONTH, i);
+                    labelSet.add(new SimpleDateFormat("MMM", Locale.getDefault()).format(cal.getTime()));
+                }
+                break;
+        }
+
+        for (String label : labelSet) {
+            dataMap.put(label, 0f);
+        }
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
             Long goal = doc.getLong("goal");
             Long current = doc.getLong("currentCount");
             String dateStr = doc.getString("lastUpdatedDate");
-            List<String> days = (List<String>) doc.get("days");
+            if (goal == null || current == null || dateStr == null || goal == 0) continue;
 
-            if (goal != null && current != null && dateStr != null) {
-                try {
-                    Calendar cal = Calendar.getInstance();
-                    cal.setTime(sdf.parse(dateStr));
-                    int day = cal.get(Calendar.DAY_OF_WEEK);
-                    String dayStr = getDayString(day);
-                    float percent = Math.min((current * 100f) / goal, 100f);
+            float percent = Math.min((current * 100f) / goal, 100f);
 
-                    if (days != null && days.contains(dayStr)) {
-                        dayToPercentList.computeIfAbsent(day, k -> new ArrayList<>()).add(percent);
-                    }
-                } catch (Exception ignored) {}
+            try {
+                Date date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr);
+                cal.setTime(date);
+                String key;
+
+                switch (selectedType) {
+                    case "Monthly":
+                        key = String.format(Locale.getDefault(), "%02d %s", cal.get(Calendar.DAY_OF_MONTH), new SimpleDateFormat("MMM", Locale.getDefault()).format(date));
+                        break;
+                    case "Yearly":
+                        key = new SimpleDateFormat("MMM", Locale.getDefault()).format(date);
+                        break;
+                    default:
+                        key = new SimpleDateFormat("EEE", Locale.getDefault()).format(date);
+                        break;
+                }
+
+                dataMap.put(key, dataMap.getOrDefault(key, 0f) + percent);
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
-        List<Entry> entries = new ArrayList<>();
-        for (int day = 1; day <= 7; day++) {
-            List<Float> percents = dayToPercentList.getOrDefault(day, new ArrayList<>());
-            float avg = percents.isEmpty() ? 0f : (float) percents.stream().mapToDouble(f -> f).average().orElse(0);
-            entries.add(new Entry(day, avg));
-        }
-
-        if (entries.stream().allMatch(e -> e.getY() == 0f)) {
-            errorText.setText("No habit progress data");
+        if (dataMap.isEmpty()) {
+            errorText.setText("No data found");
             errorText.setVisibility(View.VISIBLE);
-            hideAllCharts();
-        } else {
-            errorText.setVisibility(View.GONE);
-            showSelectedChart(entries);
+            return;
+        }
+
+        if (selectedType.equals("Weekly")) {
+            showLineChart(dataMap);
+        } else if (selectedType.equals("Weekly Pie") || selectedType.equals("Monthly") || selectedType.equals("Yearly")) {
+            showPieChart(dataMap);
+        } else if (selectedType.equals("Weekly Bar")) {
+            showBarChart(dataMap);
         }
     }
 
-    private void showSelectedChart(List<Entry> entries) {
-        String selected = chartSelector.getSelectedItem().toString();
-        hideAllCharts();
-        switch (selected) {
-            case "Line": showLineChart(entries); break;
-            case "Pie": showPieChart(entries); break;
-            case "Bar": showBarChart(entries); break;
-        }
-    }
+    private void showLineChart(Map<String, Float> data) {
+        List<Entry> entries = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+        int index = 0;
 
-    private void showLineChart(List<Entry> entries) {
+        for (Map.Entry<String, Float> entry : data.entrySet()) {
+            entries.add(new Entry(index, entry.getValue()));
+            labels.add(entry.getKey());
+            index++;
+        }
+
         LineDataSet dataSet = new LineDataSet(entries, "Progress (%)");
         dataSet.setColor(Color.BLUE);
         dataSet.setValueTextColor(Color.BLACK);
         dataSet.setLineWidth(2f);
         dataSet.setCircleRadius(4f);
         dataSet.setCircleColor(Color.BLUE);
-        LineData lineData = new LineData(dataSet);
 
+        LineData lineData = new LineData(dataSet);
         lineChart.setData(lineData);
-        lineChart.getDescription().setText("Line Chart");
-        setXAxisLabels(lineChart.getXAxis());
+        lineChart.getDescription().setText("Weekly Progress");
+
+        lineChart.getXAxis().setGranularity(1f);
+        lineChart.getXAxis().setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                int i = (int) value;
+                return (i >= 0 && i < labels.size()) ? labels.get(i) : "";
+            }
+        });
+
         lineChart.getAxisLeft().setAxisMaximum(100f);
         lineChart.getAxisLeft().setAxisMinimum(0f);
         lineChart.getAxisRight().setEnabled(false);
+
         lineChart.setVisibility(View.VISIBLE);
         lineChart.animateY(1000);
         lineChart.invalidate();
     }
 
-    private void showPieChart(List<Entry> entries) {
-        List<PieEntry> pieEntries = new ArrayList<>();
-        for (Entry e : entries) {
-            pieEntries.add(new PieEntry(e.getY(), getDayString((int) e.getX())));
+    private void showPieChart(Map<String, Float> data) {
+        List<PieEntry> entries = new ArrayList<>();
+        for (Map.Entry<String, Float> entry : data.entrySet()) {
+            entries.add(new PieEntry(entry.getValue(), entry.getKey()));
         }
 
-        PieDataSet dataSet = new PieDataSet(pieEntries, "Progress Share");
+        PieDataSet dataSet = new PieDataSet(entries, selectedType + " Summary");
         dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
-        PieData data = new PieData(dataSet);
-        data.setValueTextColor(Color.BLACK);
-        data.setValueTextSize(12f);
+        dataSet.setValueTextColor(Color.BLACK);
+        dataSet.setValueTextSize(12f);
 
-        pieChart.setData(data);
+        PieData pieData = new PieData(dataSet);
+        pieChart.setData(pieData);
         pieChart.setUsePercentValues(true);
-        pieChart.setCenterText("Daily Habit Share");
+        pieChart.setCenterText(selectedType);
+        pieChart.setDrawHoleEnabled(true);
+        pieChart.setHoleColor(Color.WHITE);
+        pieChart.setTransparentCircleRadius(40f);
         pieChart.setVisibility(View.VISIBLE);
         pieChart.animateY(1000);
         pieChart.invalidate();
     }
 
-    private void showBarChart(List<Entry> entries) {
-        List<BarEntry> barEntries = new ArrayList<>();
-        for (Entry e : entries) {
-            barEntries.add(new BarEntry(e.getX(), e.getY()));
+    private void showBarChart(Map<String, Float> data) {
+        List<BarEntry> entries = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+        int i = 0;
+        for (Map.Entry<String, Float> entry : data.entrySet()) {
+            entries.add(new BarEntry(i++, entry.getValue()));
+            labels.add(entry.getKey());
         }
 
-        BarDataSet dataSet = new BarDataSet(barEntries, "Progress (%)");
+        BarDataSet dataSet = new BarDataSet(entries, selectedType + " Progress");
         dataSet.setColor(Color.BLUE);
+        dataSet.setValueTextColor(Color.BLACK);
+        dataSet.setValueTextSize(12f);
+
         BarData barData = new BarData(dataSet);
         barData.setBarWidth(0.9f);
 
         barChart.setData(barData);
-        barChart.setFitBars(true);
-        setXAxisLabels(barChart.getXAxis());
-        barChart.getAxisLeft().setAxisMaximum(100f);
+        barChart.getXAxis().setValueFormatter(new ValueFormatter() {
+            @Override public String getFormattedValue(float value) {
+                int index = (int) value;
+                return (index >= 0 && index < labels.size()) ? labels.get(index) : "";
+            }
+        });
+
+        barChart.getXAxis().setGranularity(1f);
+        barChart.getXAxis().setDrawGridLines(false);
         barChart.getAxisLeft().setAxisMinimum(0f);
+        barChart.getAxisLeft().setAxisMaximum(100f);
         barChart.getAxisRight().setEnabled(false);
         barChart.setVisibility(View.VISIBLE);
         barChart.animateY(1000);
         barChart.invalidate();
-    }
-
-    private void hideAllCharts() {
-        lineChart.setVisibility(View.GONE);
-        pieChart.setVisibility(View.GONE);
-        barChart.setVisibility(View.GONE);
-    }
-
-    private void setXAxisLabels(com.github.mikephil.charting.components.XAxis xAxis) {
-        xAxis.setGranularity(1f);
-        xAxis.setDrawGridLines(false);
-        xAxis.setValueFormatter(new ValueFormatter() {
-            @Override public String getFormattedValue(float value) {
-                return getDayString((int) value);
-            }
-        });
-    }
-
-    private String getDayString(int dayOfWeek) {
-        switch (dayOfWeek) {
-            case Calendar.SUNDAY: return "Sun";
-            case Calendar.MONDAY: return "Mon";
-            case Calendar.TUESDAY: return "Tue";
-            case Calendar.WEDNESDAY: return "Wed";
-            case Calendar.THURSDAY: return "Thu";
-            case Calendar.FRIDAY: return "Fri";
-            case Calendar.SATURDAY: return "Sat";
-            default: return "";
-        }
     }
 }

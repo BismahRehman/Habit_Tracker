@@ -16,8 +16,11 @@ import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import android.app.DatePickerDialog;
+import android.widget.DatePicker;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -46,6 +49,26 @@ public class MainActivity extends AppCompatActivity {
         dateText = findViewById(R.id.dateText);
         String currentDate = new SimpleDateFormat("MMM d", Locale.getDefault()).format(new Date());
         dateText.setText(currentDate);
+
+        dateText.setOnClickListener(v -> {
+            // Get current date
+            final Calendar calendar = Calendar.getInstance();
+            int year = calendar.get(Calendar.YEAR);
+            int month = calendar.get(Calendar.MONTH);
+            int day = calendar.get(Calendar.DAY_OF_MONTH);
+
+            // Show date picker
+            DatePickerDialog datePickerDialog = new DatePickerDialog(MainActivity.this,
+                    (view, selectedYear, selectedMonth, selectedDay) -> {
+                        // Format selected date and show it
+                        Calendar selectedDate = Calendar.getInstance();
+                        selectedDate.set(selectedYear, selectedMonth, selectedDay);
+                        String formattedDate = new SimpleDateFormat("MMM d", Locale.getDefault()).format(selectedDate.getTime());
+                        dateText.setText(formattedDate);
+                    }, year, month, day);
+
+            datePickerDialog.show();
+        });
 
         // Handle chat icon click
         chatIcon = findViewById(R.id.chatIcon);
