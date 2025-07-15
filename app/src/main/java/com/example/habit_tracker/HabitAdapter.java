@@ -67,6 +67,7 @@ public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHol
 
 
 
+
             FirebaseFirestore.getInstance()
                     .collection("habits")
                     .document(habit.getId()) // assumes habit has setId from Firestore
