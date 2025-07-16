@@ -13,6 +13,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.*;
 import android.widget.*;
 import androidx.annotation.NonNull;
@@ -66,7 +67,10 @@ public class SettingsFragment extends Fragment {
             if (isChecked) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
                         !requireContext().getSystemService(AlarmManager.class).canScheduleExactAlarms()) {
-                    Toast.makeText(getContext(), "Please allow exact alarm permissions in settings", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "Please allow exact alarm permissions in system settings", Toast.LENGTH_LONG).show();
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                    intent.setData(Uri.parse("package:" + requireContext().getPackageName()));
+                    startActivity(intent);
                     switchReminders.setChecked(false);
                     return;
                 }
@@ -117,7 +121,7 @@ public class SettingsFragment extends Fragment {
         btnLogout.setOnClickListener(v -> {
             FirebaseAuth.getInstance().signOut();
             Toast.makeText(getContext(), "Logged out", Toast.LENGTH_SHORT).show();
-            // Example navigation: NavHostFragment.findNavController(this).navigate(R.id.action_settings_to_login);
+            // Example: NavHostFragment.findNavController(this).navigate(R.id.action_settings_to_login);
         });
 
         btnClearHistory.setOnClickListener(v -> {
@@ -156,11 +160,6 @@ public class SettingsFragment extends Fragment {
                 requireContext().getSystemService(AlarmManager.class).canScheduleExactAlarms()) {
             scheduleNotification();
         }
-
-        boolean darkMode = prefs.getBoolean("darkMode", false);
-        switchDarkMode.setChecked(darkMode);
-        AppCompatDelegate.setDefaultNightMode(darkMode ?
-                AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO);
     }
 
     private void showTimePicker() {
@@ -173,6 +172,14 @@ public class SettingsFragment extends Fragment {
             txtReminderTime.setText("Reminder Time: " + time);
             prefs.edit().putString("reminderTime", time).apply();
             if (switchReminders.isChecked()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                        !requireContext().getSystemService(AlarmManager.class).canScheduleExactAlarms()) {
+                    Toast.makeText(getContext(), "Please allow exact alarm permissions in system settings", Toast.LENGTH_LONG).show();
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                    intent.setData(Uri.parse("package:" + requireContext().getPackageName()));
+                    startActivity(intent);
+                    return;
+                }
                 scheduleNotification();
             }
         }, hour, minute, false).show();
@@ -194,9 +201,18 @@ public class SettingsFragment extends Fragment {
             calendar.add(Calendar.DAY_OF_YEAR, 1);
         }
 
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
-                calendar.getTimeInMillis(), AlarmManager.INTERVAL_DAY, pendingIntent);
-        Toast.makeText(getContext(), "Reminder set for " + txtReminderTime.getText(), Toast.LENGTH_SHORT).show();
+        try {
+            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
+                    calendar.getTimeInMillis(), AlarmManager.INTERVAL_DAY, pendingIntent);
+            Toast.makeText(getContext(), "Reminder set for " + txtReminderTime.getText(), Toast.LENGTH_SHORT).show();
+        } catch (SecurityException e) {
+            Toast.makeText(getContext(), "Failed to set reminder: Please allow exact alarm permissions in system settings", Toast.LENGTH_LONG).show();
+            Intent settingsIntent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+            settingsIntent.setData(Uri.parse("package:" + requireContext().getPackageName()));
+            startActivity(settingsIntent);
+            switchReminders.setChecked(false);
+            prefs.edit().putBoolean("remindersEnabled", false).apply();
+        }
     }
 
     private void cancelNotification() {
@@ -205,8 +221,12 @@ public class SettingsFragment extends Fragment {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(requireContext(), 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        alarmManager.cancel(pendingIntent);
-        Toast.makeText(getContext(), "Reminder cancelled", Toast.LENGTH_SHORT).show();
+        try {
+            alarmManager.cancel(pendingIntent);
+            Toast.makeText(getContext(), "Reminder cancelled", Toast.LENGTH_SHORT).show();
+        } catch (SecurityException e) {
+            Toast.makeText(getContext(), "Failed to cancel reminder: Please check permissions", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void setLocale(String language) {
