@@ -3,6 +3,8 @@ package com.example.habit_tracker;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.PopupMenu;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -12,6 +14,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.*;
 
+import com.github.mikephil.charting.charts.BarChart;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -24,7 +27,17 @@ public class HomeFragment extends Fragment {
     private FirebaseFirestore db;
     private HabitAdapter adapter;
     private List<HabitModel> habitList = new ArrayList<>();
-
+    // Map abbreviated day names to full names
+    private static final Map<String, String> DAY_NAME_MAP = new HashMap<>();
+    static {
+        DAY_NAME_MAP.put("Sun", "Sunday");
+        DAY_NAME_MAP.put("Mon", "Monday");
+        DAY_NAME_MAP.put("Tue", "Tuesday");
+        DAY_NAME_MAP.put("Wed", "Wednesday");
+        DAY_NAME_MAP.put("Thu", "Thursday");
+        DAY_NAME_MAP.put("Fri", "Friday");
+        DAY_NAME_MAP.put("Sat", "Saturday");
+    }
     private String getToday() {
         Calendar calendar = Calendar.getInstance();
         int day = calendar.get(Calendar.DAY_OF_WEEK);
@@ -53,7 +66,6 @@ public class HomeFragment extends Fragment {
 
 
         db = FirebaseFirestore.getInstance();
-
         // Initialize adapter once
         adapter = new HabitAdapter(habitList);
         habitRecyclerView.setAdapter(adapter);
@@ -102,24 +114,24 @@ public class HomeFragment extends Fragment {
                             .setTitle("Edit Habit")
                             .setMessage("Do you want to edit this habit?")
                             .setPositiveButton("Yes", (dialog, which) -> {
-                    Bundle bundle = new Bundle();
-                    bundle.putString("docId", habit.getId());
-                    bundle.putString("name", habit.getName());
-                    bundle.putString("description", habit.getDescription());
-                    bundle.putLong("goal", habit.getGoal());
-                    bundle.putString("reminderTime", habit.getReminderTime());
-                    bundle.putBoolean("reminder", habit.isReminder());
-                    bundle.putStringArrayList("days", new ArrayList<>(habit.getDays()));
+                                Bundle bundle = new Bundle();
+                                bundle.putString("docId", habit.getId());
+                                bundle.putString("name", habit.getName());
+                                bundle.putString("description", habit.getDescription());
+                                bundle.putLong("goal", habit.getGoal());
+                                bundle.putString("reminderTime", habit.getReminderTime());
+                                bundle.putBoolean("reminder", habit.isReminder());
+                                bundle.putStringArrayList("days", new ArrayList<>(habit.getDays()));
 
-                    FabFragment fabFragment = new FabFragment();
-                    fabFragment.setArguments(bundle);
+                                FabFragment fabFragment = new FabFragment();
+                                fabFragment.setArguments(bundle);
 
-                    requireActivity().getSupportFragmentManager()
-                            .beginTransaction()
-                            .replace(R.id.container, fabFragment)
-                            .addToBackStack(null)
-                            .commit();
-                })
+                                requireActivity().getSupportFragmentManager()
+                                        .beginTransaction()
+                                        .replace(R.id.container, fabFragment)
+                                        .addToBackStack(null)
+                                        .commit();
+                            })
                             .setNegativeButton("No", (dialog, which) -> {
                                 adapter.notifyItemChanged(pos); // ❗ Restore item if cancelled
                             })
@@ -130,135 +142,6 @@ public class HomeFragment extends Fragment {
             }
         }).attachToRecyclerView(habitRecyclerView);
 
-
-//
-//        // Set long click listener for edit
-//        adapter.setOnItemLongClickListener((habit, position, v) -> {
-//            PopupMenu menu = new PopupMenu(getContext(), v);
-//            menu.getMenu().add("Edit");
-//            menu.setOnMenuItemClickListener(item -> {
-//                if (item.getTitle().equals("Edit")) {
-//                    // Navigate to FabFragment
-//                    requireActivity().getSupportFragmentManager()
-//                            .beginTransaction();
-//                    Bundle bundle = new Bundle();
-//                    bundle.putString("docId", habit.getId());
-//                    bundle.putString("name", habit.getName());
-//                    bundle.putString("description", habit.getDescription());
-//                    bundle.putLong("goal", habit.getGoal());
-//                    bundle.putString("reminderTime", habit.getReminderTime());
-//                    bundle.putBoolean("reminder", habit.isReminder());
-//                    bundle.putStringArrayList("days", new ArrayList<>(habit.getDays()));
-//// add more if needed
-//
-//                    FabFragment fabFragment = new FabFragment();
-//                    fabFragment.setArguments(bundle);
-//
-//                    requireActivity().getSupportFragmentManager()
-//                            .beginTransaction()
-//                            .replace(R.id.container, fabFragment)
-//                            .addToBackStack(null)
-//                            .commit();
-//
-//                }
-//                return true;
-//            });
-//            menu.show();
-//        });
-//
-//
-//        // Swipe to delete
-//        new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0,
-//                ItemTouchHelper.LEFT ) {
-//            @Override
-//            public boolean onMove(@NonNull RecyclerView recyclerView,
-//                                  @NonNull RecyclerView.ViewHolder viewHolder,
-//                                  @NonNull RecyclerView.ViewHolder target) {
-//                return false;
-//            }
-//
-//            @Override
-//            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-//                int pos = viewHolder.getAdapterPosition();
-//                HabitModel habit = habitList.get(pos);
-//
-////                db.collection("habits").document(habit.getId())
-////                        .delete()
-////                        .addOnSuccessListener(unused ->
-////                                Toast.makeText(getContext(), "Deleted", Toast.LENGTH_SHORT).show());
-//
-//
-//                new android.app.AlertDialog.Builder(getContext())
-//                        .setTitle("Delete Habit")
-//                        .setMessage("Are you sure you want to delete this Habit?")
-//                        .setPositiveButton("Yes", (dialog, which) -> {
-//                            FirebaseFirestore.getInstance()
-//                                    .collection("habits")
-//                                    .document(habit.getId())
-//                                    .delete()
-//                                    .addOnSuccessListener(unused -> {
-//                                        habitList.remove(pos);
-//                                        adapter.notifyItemRemoved(pos);
-//                                        Toast.makeText(getContext(), "Habit deleted", Toast.LENGTH_SHORT).show();
-//                                    });
-//                        })
-//                        .setNegativeButton("No", (dialog, which) -> {
-//                            adapter.notifyItemChanged(pos); // ❗restore the item if cancelled
-//                        })
-//                        .setCancelable(false)
-//                        .show();
-//
-////                habitList.remove(pos);
-////                adapter.notifyItemRemoved(pos);
-//            }
-//        }).attachToRecyclerView(habitRecyclerView);
-//
-//
-//        // Swipe to delete
-//        new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0,
-//                ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-//            @Override
-//            public boolean onMove(@NonNull RecyclerView recyclerView,
-//                                  @NonNull RecyclerView.ViewHolder viewHolder,
-//                                  @NonNull RecyclerView.ViewHolder target) {
-//                return false;
-//            }
-//
-//            @Override
-//            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-//                int pos = viewHolder.getAdapterPosition();
-//                HabitModel habit = habitList.get(pos);
-//
-////                db.collection("habits").document(habit.getId())
-////                        .delete()
-////                        .addOnSuccessListener(unused ->
-////                                Toast.makeText(getContext(), "Deleted", Toast.LENGTH_SHORT).show());
-//
-//
-//                new android.app.AlertDialog.Builder(getContext())
-//                        .setTitle("Delete Habit")
-//                        .setMessage("Are you sure you want to delete this Habit?")
-//                        .setPositiveButton("Yes", (dialog, which) -> {
-//                            FirebaseFirestore.getInstance()
-//                                    .collection("habits")
-//                                    .document(habit.getId())
-//                                    .delete()
-//                                    .addOnSuccessListener(unused -> {
-//                                        habitList.remove(pos);
-//                                        adapter.notifyItemRemoved(pos);
-//                                        Toast.makeText(getContext(), "Habit deleted", Toast.LENGTH_SHORT).show();
-//                                    });
-//                        })
-//                        .setNegativeButton("No", (dialog, which) -> {
-//                            adapter.notifyItemChanged(pos); // ❗restore the item if cancelled
-//                        })
-//                        .setCancelable(false)
-//                        .show();
-//
-////                habitList.remove(pos);
-////                adapter.notifyItemRemoved(pos);
-//            }
-//        }).attachToRecyclerView(habitRecyclerView);
 
         return view;
     }

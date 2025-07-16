@@ -1,7 +1,10 @@
 package com.example.habit_tracker;
 
 import android.annotation.SuppressLint;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -50,25 +53,13 @@ public class MainActivity extends AppCompatActivity {
         String currentDate = new SimpleDateFormat("MMM d", Locale.getDefault()).format(new Date());
         dateText.setText(currentDate);
 
-        dateText.setOnClickListener(v -> {
-            // Get current date
-            final Calendar calendar = Calendar.getInstance();
-            int year = calendar.get(Calendar.YEAR);
-            int month = calendar.get(Calendar.MONTH);
-            int day = calendar.get(Calendar.DAY_OF_MONTH);
 
-            // Show date picker
-            DatePickerDialog datePickerDialog = new DatePickerDialog(MainActivity.this,
-                    (view, selectedYear, selectedMonth, selectedDay) -> {
-                        // Format selected date and show it
-                        Calendar selectedDate = Calendar.getInstance();
-                        selectedDate.set(selectedYear, selectedMonth, selectedDay);
-                        String formattedDate = new SimpleDateFormat("MMM d", Locale.getDefault()).format(selectedDate.getTime());
-                        dateText.setText(formattedDate);
-                    }, year, month, day);
-
-            datePickerDialog.show();
-        });
+        // Create notification channel
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel("habit_tracker_channel", "Habit Tracker", NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(channel);
+        }
 
         // Handle chat icon click
         chatIcon = findViewById(R.id.chatIcon);

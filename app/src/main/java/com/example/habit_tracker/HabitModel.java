@@ -47,7 +47,7 @@ public class HabitModel {
 
     public List<String> getDays() { return days; }
     public void setDays(List<String> days) { this.days = days; }
-   //setLastUpdatedDate
+    //setLastUpdatedDate
     public void setLastUpdatedDate(String lastUpdatedDate) { this.lastUpdatedDate = lastUpdatedDate; }
 
     public String getLastUpdatedDate() { return lastUpdatedDate; }

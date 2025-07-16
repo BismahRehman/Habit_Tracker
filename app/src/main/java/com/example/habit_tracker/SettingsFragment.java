@@ -1,64 +1,250 @@
 package com.example.habit_tracker;
 
+import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.app.TimePickerDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
-
+import android.view.*;
+import android.widget.*;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.Fragment;
 
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link SettingsFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import java.util.*;
+
 public class SettingsFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private static final int REQUEST_CODE_NOTIFICATION_SOUND = 100;
+    private Switch switchReminders, switchDarkMode;
+    private TextView txtReminderTime, txtAccountInfo;
+    private Button btnLogout, btnClearHistory, btnSelectSound;
+    private Spinner languageSpinner;
+    private Calendar reminderCalendar = Calendar.getInstance();
+    private SharedPreferences prefs;
+    private FirebaseFirestore db;
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public SettingsFragment() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment SettingsFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static SettingsFragment newInstance(String param1, String param2) {
-        SettingsFragment fragment = new SettingsFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
+    @Nullable
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_settings, container, false);
+
+        switchReminders = view.findViewById(R.id.switchReminders);
+        switchDarkMode = view.findViewById(R.id.switchDarkMode);
+        txtReminderTime = view.findViewById(R.id.txtReminderTime);
+        txtAccountInfo = view.findViewById(R.id.txtAccountInfo);
+        btnLogout = view.findViewById(R.id.btnLogout);
+        btnClearHistory = view.findViewById(R.id.btnClearHistory);
+        btnSelectSound = view.findViewById(R.id.btnSelectSound);
+        languageSpinner = view.findViewById(R.id.languageSpinner);
+
+        prefs = requireContext().getSharedPreferences("HabitTrackerPrefs", Context.MODE_PRIVATE);
+        db = FirebaseFirestore.getInstance();
+
+        initializePreferences();
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        txtAccountInfo.setText(user != null ? "Email: " + user.getEmail() : "Email: Not Logged In");
+
+        switchReminders.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            txtReminderTime.setEnabled(isChecked);
+            prefs.edit().putBoolean("remindersEnabled", isChecked).apply();
+            if (isChecked) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                        !requireContext().getSystemService(AlarmManager.class).canScheduleExactAlarms()) {
+                    Toast.makeText(getContext(), "Please allow exact alarm permissions in settings", Toast.LENGTH_LONG).show();
+                    switchReminders.setChecked(false);
+                    return;
+                }
+                scheduleNotification();
+            } else {
+                cancelNotification();
+            }
+        });
+
+        txtReminderTime.setOnClickListener(v -> showTimePicker());
+
+        switchDarkMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            prefs.edit().putBoolean("darkMode", isChecked).apply();
+            AppCompatDelegate.setDefaultNightMode(isChecked ?
+                    AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO);
+            requireActivity().recreate();
+        });
+
+        ArrayAdapter<String> langAdapter = new ArrayAdapter<>(requireContext(),
+                android.R.layout.simple_spinner_item, Arrays.asList("English", "Urdu", "French"));
+        langAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        languageSpinner.setAdapter(langAdapter);
+        languageSpinner.setSelection(getLanguagePosition(prefs.getString("language", "English")));
+
+        languageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selectedLang = parent.getItemAtPosition(position).toString();
+                if (!selectedLang.equals(prefs.getString("language", "English"))) {
+                    prefs.edit().putString("language", selectedLang).apply();
+                    setLocale(selectedLang);
+                }
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        btnSelectSound.setOnClickListener(v -> {
+            Intent intent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
+            intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION);
+            intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Notification Sound");
+            intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                    Uri.parse(prefs.getString("notificationSound",
+                            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION).toString())));
+            startActivityForResult(intent, REQUEST_CODE_NOTIFICATION_SOUND);
+        });
+
+        btnLogout.setOnClickListener(v -> {
+            FirebaseAuth.getInstance().signOut();
+            Toast.makeText(getContext(), "Logged out", Toast.LENGTH_SHORT).show();
+            // Example navigation: NavHostFragment.findNavController(this).navigate(R.id.action_settings_to_login);
+        });
+
+        btnClearHistory.setOnClickListener(v -> {
+            db.collection("habits").get().addOnSuccessListener(snap -> {
+                for (var doc : snap.getDocuments()) {
+                    doc.getReference().collection("history").get().addOnSuccessListener(historySnap -> {
+                        for (var h : historySnap.getDocuments()) {
+                            h.getReference().delete();
+                        }
+                    });
+                }
+                Toast.makeText(getContext(), "Habit history cleared", Toast.LENGTH_SHORT).show();
+            });
+        });
+
+        return view;
+    }
+
+    private void initializePreferences() {
+        boolean remindersEnabled = prefs.getBoolean("remindersEnabled", false);
+        switchReminders.setChecked(remindersEnabled);
+        txtReminderTime.setEnabled(remindersEnabled);
+
+        String savedTime = prefs.getString("reminderTime", "10:00");
+        txtReminderTime.setText("Reminder Time: " + savedTime);
+        String[] timeParts = savedTime.split(":");
+        try {
+            reminderCalendar.set(Calendar.HOUR_OF_DAY, Integer.parseInt(timeParts[0]));
+            reminderCalendar.set(Calendar.MINUTE, Integer.parseInt(timeParts[1]));
+        } catch (NumberFormatException e) {
+            reminderCalendar.set(Calendar.HOUR_OF_DAY, 10);
+            reminderCalendar.set(Calendar.MINUTE, 0);
+        }
+
+        if (remindersEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                requireContext().getSystemService(AlarmManager.class).canScheduleExactAlarms()) {
+            scheduleNotification();
+        }
+
+        boolean darkMode = prefs.getBoolean("darkMode", false);
+        switchDarkMode.setChecked(darkMode);
+        AppCompatDelegate.setDefaultNightMode(darkMode ?
+                AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO);
+    }
+
+    private void showTimePicker() {
+        int hour = reminderCalendar.get(Calendar.HOUR_OF_DAY);
+        int minute = reminderCalendar.get(Calendar.MINUTE);
+        new TimePickerDialog(getContext(), (view, hourOfDay, minute1) -> {
+            reminderCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+            reminderCalendar.set(Calendar.MINUTE, minute1);
+            String time = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute1);
+            txtReminderTime.setText("Reminder Time: " + time);
+            prefs.edit().putString("reminderTime", time).apply();
+            if (switchReminders.isChecked()) {
+                scheduleNotification();
+            }
+        }, hour, minute, false).show();
+    }
+
+    private void scheduleNotification() {
+        AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(requireContext(), NotificationReceiver.class);
+        intent.putExtra("showYesterday", true); // Signal to show yesterday's habits
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(requireContext(), 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, reminderCalendar.get(Calendar.HOUR_OF_DAY));
+        calendar.set(Calendar.MINUTE, reminderCalendar.get(Calendar.MINUTE));
+        calendar.set(Calendar.SECOND, 0);
+
+        if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_YEAR, 1);
+        }
+
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
+                calendar.getTimeInMillis(), AlarmManager.INTERVAL_DAY, pendingIntent);
+        Toast.makeText(getContext(), "Reminder set for " + txtReminderTime.getText(), Toast.LENGTH_SHORT).show();
+    }
+
+    private void cancelNotification() {
+        AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(requireContext(), NotificationReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(requireContext(), 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        alarmManager.cancel(pendingIntent);
+        Toast.makeText(getContext(), "Reminder cancelled", Toast.LENGTH_SHORT).show();
+    }
+
+    private void setLocale(String language) {
+        String langCode = language.equals("Urdu") ? "ur" : language.equals("French") ? "fr" : "en";
+        Locale locale = new Locale(langCode);
+        Locale.setDefault(locale);
+        Configuration config = new Configuration();
+        config.setLocale(locale);
+        requireContext().getResources().updateConfiguration(config,
+                requireContext().getResources().getDisplayMetrics());
+        Toast.makeText(getContext(), "Language changed to " + language, Toast.LENGTH_SHORT).show();
+        requireActivity().recreate();
+    }
+
+    private int getLanguagePosition(String language) {
+        switch (language) {
+            case "Urdu": return 1;
+            case "French": return 2;
+            default: return 0;
         }
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_settings, container, false);
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_NOTIFICATION_SOUND && resultCode == Activity.RESULT_OK && data != null) {
+            Uri soundUri = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+            if (soundUri != null) {
+                prefs.edit().putString("notificationSound", soundUri.toString()).apply();
+                Ringtone ringtone = RingtoneManager.getRingtone(requireContext(), soundUri);
+                ringtone.play();
+                new android.os.Handler().postDelayed(ringtone::stop, 2000); // Stop after 2 seconds
+                Toast.makeText(getContext(), "Notification sound selected", Toast.LENGTH_SHORT).show();
+            } else {
+                prefs.edit().putString("notificationSound",
+                        RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION).toString()).apply();
+                Toast.makeText(getContext(), "Default notification sound selected", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }
