@@ -1,14 +1,11 @@
 package com.example.habit_tracker;
 
-import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -22,11 +19,9 @@ import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
-import android.app.DatePickerDialog;
-import android.widget.DatePicker;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -116,8 +111,6 @@ public class MainActivity extends AppCompatActivity {
     private void handleKeyboardVisibility() {
         final View rootView = findViewById(android.R.id.content);
         rootView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
-            int heightDiff = rootView.getRootView().getHeight() - rootView.getHeight();
-            BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
 
         });
     }

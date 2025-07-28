@@ -12,7 +12,7 @@ import java.util.List;
 
 public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
 
-    private List<ChatMessage> messages;
+    private final List<ChatMessage> messages;
 
     public ChatAdapter(List<ChatMessage> messages) {
         this.messages = messages;
