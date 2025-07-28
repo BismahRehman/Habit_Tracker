@@ -35,7 +35,7 @@ public class NotificationReceiver extends BroadcastReceiver {
 
         // Build and send notification
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "habit_tracker_channel")
-                .setSmallIcon(R.drawable.ic_launcher_foreground) // Update to your app's notification icon
+                .setSmallIcon(R.drawable.download) // Update to your app's notification icon
                 .setContentTitle("Habit Tracker")
                 .setContentText("Time to check your habits!")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)

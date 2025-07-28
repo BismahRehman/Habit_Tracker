@@ -2,6 +2,7 @@ package com.example.habit_tracker;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -9,10 +10,11 @@ import android.content.SharedPreferences;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
-import android.util.Log;
-import android.widget.Toast;
+
 
 import androidx.core.app.NotificationCompat;
+
+import java.util.Calendar;
 
 public class ReminderReceiver extends BroadcastReceiver {
 
@@ -37,7 +39,7 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         // Build notification
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground) // Replace with custom icon
+                .setSmallIcon(R.drawable.download) // Replace with custom icon
                 .setContentTitle("Habit Reminder")
                 .setContentText("Time to work on: " + habitName)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -52,9 +54,23 @@ public class ReminderReceiver extends BroadcastReceiver {
             notificationManager.notify(notificationId, builder.build());
         }
 
-        // Debug log and toast
-        Log.d("ReminderReceiver", "Reminder triggered for habit: " + habitName);
-        Toast.makeText(context, "Reminder: " + habitName, Toast.LENGTH_SHORT).show();
+        // 🟡 Reschedule for next day
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, 1); // Next day
+        calendar.set(Calendar.HOUR_OF_DAY, 8); // set to same reminder time
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+
+        Intent newIntent = new Intent(context, ReminderReceiver.class);
+        newIntent.putExtra("habitName", habitName);
+
+        PendingIntent peningIntent = PendingIntent.getBroadcast(
+                context,
+                habitName.hashCode(), // unique ID per habit
+                newIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
     }
 
     private void createNotificationChannel(Context context) {
