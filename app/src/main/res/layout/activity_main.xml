@@ -6,6 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:windowSoftInputMode="adjustResize"
+    android:exported="true"
     tools:context=".MainActivity">
 
     <!-- Custom Top App Bar -->
@@ -13,13 +15,16 @@
         android:id="@+id/TopAppBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
+        android:background="#02A189"
         android:elevation="4dp"
         android:padding="12dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="match_parent"
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            >
 
             <!-- Left: Current Date -->
             <TextView
@@ -50,7 +55,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
-                android:src="@drawable/baseline_1k_24"
+                android:src="@drawable/baseline_chat_24"
                 android:contentDescription="Chat"
                 android:tint="@android:color/white"
                 tools:ignore="HardcodedText,UseAppTint" />
@@ -58,20 +63,18 @@
     </androidx.appcompat.widget.Toolbar>
 
 
+    <!-- 🔻 Bottom Navigation Bar -->
     <FrameLayout
         android:id="@+id/container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1" />
 
-
-
-    <!-- 🔻 Bottom Navigation Bar -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?android:attr/windowBackground"
+        android:background="#E7E7E7"
         app:menu="@menu/bottom_nav_menu" />
 
 

@@ -2,19 +2,13 @@ package com.example.habit_tracker;
 
 import android.os.Bundle;
 import android.view.*;
-import android.widget.PopupMenu;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.NavController;
-import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.*;
 
-import com.github.mikephil.charting.charts.BarChart;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -84,6 +78,14 @@ public class HomeFragment extends Fragment {
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
                 int pos = viewHolder.getAdapterPosition();
+
+                // 🚨 Safety check to avoid crash
+                if (pos < 0 || pos >= habitList.size()) {
+                    adapter.notifyDataSetChanged(); // safely refresh to prevent stuck state
+                    return;
+                }
+
+
                 HabitModel habit = habitList.get(pos);
 
                 if (direction == ItemTouchHelper.LEFT) {
@@ -97,8 +99,12 @@ public class HomeFragment extends Fragment {
                                         .document(habit.getId())
                                         .delete()
                                         .addOnSuccessListener(unused -> {
-                                            habitList.remove(pos);
-                                            adapter.notifyItemRemoved(pos);
+                                            if (pos >= 0 && pos < habitList.size()) {
+                                                habitList.remove(pos);
+                                                adapter.notifyItemRemoved(pos);
+                                            } else {
+                                                adapter.notifyDataSetChanged(); // fallback: refresh everything
+                                            }
                                             Toast.makeText(getContext(), "Habit deleted", Toast.LENGTH_SHORT).show();
                                         });
                             })
@@ -168,16 +174,28 @@ public class HomeFragment extends Fragment {
                             habit.setId(doc.getId());
 
 
-//                            // ✅ Daily reset check here (not in adapter)
-//                            if (!todayDate.equals(habit.getLastUpdatedDate())) {
-//                                habit.setCurrentCount(0);
-//                                habit.setLastUpdatedDate(todayDate);
+
+                            // ✅ Save today's history (if not saved yet)
+                            db.collection("habits")
+                                    .document(habit.getId())
+                                    .collection("history")
+                                    .document(todayDate)
+                                    .get()
+                                    .addOnSuccessListener(historyDoc -> {
+                                        if (!historyDoc.exists()) {
+                                            Map<String, Object> historyData = new HashMap<>();
+                                            historyData.put("count", habit.getCurrentCount());
+                                            historyData.put("goal", habit.getGoal());
+                                            historyData.put("timestamp", new Date());
+
+                                            db.collection("habits")
+                                                    .document(habit.getId())
+                                                    .collection("history")
+                                                    .document(todayDate)
+                                                    .set(historyData);
+                                        }
+                                    });
 //
-//                                // Update Firestore with reset data
-//                                db.collection("habits")
-//                                        .document(habit.getId())
-//                                        .update("currentCount", 0, "lastUpdatedDate", todayDate);
-//                            }
                             habitList.add(habit);
                         }
                     }

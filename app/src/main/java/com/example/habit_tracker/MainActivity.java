@@ -4,8 +4,11 @@ import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -44,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        handleKeyboardVisibility();
 
         Toolbar toolbar = findViewById(R.id.TopAppBar);
         setSupportActionBar(toolbar);
@@ -108,4 +112,15 @@ public class MainActivity extends AppCompatActivity {
                 .replace(R.id.container, fragment)
                 .commit();
     }
+
+    private void handleKeyboardVisibility() {
+        final View rootView = findViewById(android.R.id.content);
+        rootView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            int heightDiff = rootView.getRootView().getHeight() - rootView.getHeight();
+            BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
+
+        });
+    }
+
+
 }

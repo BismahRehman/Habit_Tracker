@@ -148,6 +148,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Logout"
+                    android:backgroundTint="#AF1D1D"
                     android:layout_marginTop="8dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -170,6 +171,7 @@
                     android:id="@+id/btnClearHistory"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:backgroundTint="#B10909"
                     android:text="Clear All Habit History" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

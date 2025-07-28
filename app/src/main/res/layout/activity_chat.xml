@@ -7,9 +7,9 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#2563EB"
+        android:background="#02A88F"
         android:padding="16dp"
-        android:text="Panaversity AI Assistant"
+        android:text="Habit AI Assistant"
         android:textColor="@android:color/white"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -50,7 +50,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Send"
-            android:backgroundTint="#2563EB"
+            android:backgroundTint="#02A78E"
             android:textColor="@android:color/white" />
     </LinearLayout>
 </LinearLayout>

@@ -120,8 +120,12 @@ public class SettingsFragment extends Fragment {
 
         btnLogout.setOnClickListener(v -> {
             FirebaseAuth.getInstance().signOut();
-            Toast.makeText(getContext(), "Logged out", Toast.LENGTH_SHORT).show();
-            // Example: NavHostFragment.findNavController(this).navigate(R.id.action_settings_to_login);
+
+            // Navigate to LoginActivity after logout
+            Intent intent = new Intent(getContext(), LoginActivity.class); // change if your login screen has a different name
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK); // clear activity stack
+            startActivity(intent);
+            requireActivity().finish(); // finish current activity
         });
 
         btnClearHistory.setOnClickListener(v -> {

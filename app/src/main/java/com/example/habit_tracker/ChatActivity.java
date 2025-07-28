@@ -51,7 +51,7 @@ public class ChatActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
 
         messages = new ArrayList<>();
-        messages.add(new ChatMessage("assistant", "Welcome to the Panaversity AI Assistant! How can I help you today?"));
+        messages.add(new ChatMessage("assistant", "Welcome to the Habit Maker  AI Assistant! How can I help you today?"));
         chatAdapter = new ChatAdapter(messages);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(chatAdapter);
