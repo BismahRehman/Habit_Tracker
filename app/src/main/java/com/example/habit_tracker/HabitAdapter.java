@@ -1,6 +1,5 @@
 package com.example.habit_tracker;
 
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,15 +15,7 @@ import java.util.List;
 public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHolder> {
 
     private List<HabitModel> habitList;
-    private OnItemLongClickListener longClickListener;
 
-    public interface OnItemLongClickListener {
-        void onItemLongClick(HabitModel habit, int position, View anchorView);
-    }
-
-    public void setOnItemLongClickListener(OnItemLongClickListener listener) {
-        this.longClickListener = listener;
-    }
 
     public HabitAdapter(List<HabitModel> habitList) {
         this.habitList = habitList;
@@ -65,10 +56,10 @@ public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHol
 
 
 
-
             FirebaseFirestore.getInstance()
                     .collection("habits")
                     .document(habit.getId()) // assumes habit has setId from Firestore
+
                     .update("currentCount", habit.getCurrentCount(),
                             "streak", habit.getStreak())
                     .addOnSuccessListener(unused -> {
@@ -77,13 +68,7 @@ public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHol
                     });
         });
 
-        // Long click to trigger popup menu
-        holder.itemView.setOnLongClickListener(v -> {
-            if (longClickListener != null) {
-                longClickListener.onItemLongClick(habit, position, v);
-            }
-            return true;
-        });
+
     }
 
     @Override
@@ -91,10 +76,6 @@ public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHol
         return habitList.size();
     }
 
-    public void updateList(List<HabitModel> newList) {
-        this.habitList = newList;
-        notifyDataSetChanged();
-    }
 
     static class HabitViewHolder extends RecyclerView.ViewHolder {
         TextView title, description, count, streakCount;
@@ -174,7 +155,20 @@ public class HabitAdapter extends RecyclerView.Adapter<HabitAdapter.HabitViewHol
                             streakCount.setText("🔥 " + habit.getStreak() + " days");
                             Toast.makeText(v.getContext(), "Progress updated!", Toast.LENGTH_SHORT).show();
                         });
+
+                HistoryModel history = new HistoryModel(habit.getCurrentCount(), habit.getGoal(), System.currentTimeMillis());
+
+                // ✅ Save history
+                FirebaseFirestore.getInstance()
+                        .collection("habits")
+                        .document(habit.getId())
+                        .collection("history")
+                        .document(todayDate)
+                        .set(history);
+
+
             });
+
         }
     }
 }

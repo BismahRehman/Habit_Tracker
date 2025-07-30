@@ -24,6 +24,8 @@ public class ProgressFragment extends Fragment {
     private TextView errorText;
     private BarChart barChart;
     private FirebaseFirestore db;
+    private List<String> last7Days;
+    private List<Integer> colors;
 
     // Map abbreviated day names to full names
     private static final Map<String, String> DAY_NAME_MAP = new HashMap<>();
@@ -88,11 +90,24 @@ public class ProgressFragment extends Fragment {
             return;
         }
 
+        // Get current day of the week
+        String currentDay = new SimpleDateFormat("EEEE", Locale.getDefault()).format(new Date());
+        Log.d(TAG, "Current day: " + currentDay);
+
+        // Define ordered days of the week
+        String[] allDays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+        List<String> displayDays = new ArrayList<>();
+        int currentDayIndex = Arrays.asList(allDays).indexOf(currentDay);
+
+        // Include only days up to the current day
+        for (int i = 0; i <= currentDayIndex; i++) {
+            displayDays.add(allDays[i]);
+        }
+
         // Maps for total and completed habits per day
         Map<String, Integer> totalHabitsMap = new LinkedHashMap<>();
         Map<String, Integer> completedHabitsMap = new LinkedHashMap<>();
-        String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
-        for (String day : days) {
+        for (String day : displayDays) {
             totalHabitsMap.put(day, 0);
             completedHabitsMap.put(day, 0);
         }
@@ -126,7 +141,7 @@ public class ProgressFragment extends Fragment {
                     fullDayNames.add(fullDay);
                 }
 
-                if (fullDayNames.contains(dayOfWeek)) {
+                if (fullDayNames.contains(dayOfWeek) && displayDays.contains(dayOfWeek)) {
                     Log.d(TAG, "Habit '" + habitName + "' matches day: " + dayOfWeek);
                     totalHabitsMap.put(dayOfWeek, totalHabitsMap.getOrDefault(dayOfWeek, 0) + 1);
                     if (current >= goal) {
@@ -140,11 +155,10 @@ public class ProgressFragment extends Fragment {
 
         // Calculate completion percentages
         List<BarEntry> entries = new ArrayList<>();
-        List<String> labels = Arrays.asList(days);
         boolean hasData = false;
 
-        for (int i = 0; i < days.length; i++) {
-            String day = days[i];
+        for (int i = 0; i < displayDays.size(); i++) {
+            String day = displayDays.get(i);
             int total = totalHabitsMap.get(day);
             int completed = completedHabitsMap.get(day);
             float percentage = total > 0 ? (completed * 100f) / total : 0f;
@@ -154,13 +168,13 @@ public class ProgressFragment extends Fragment {
         }
 
         if (!hasData) {
-            Log.w(TAG, "No selected habits found for this week");
-            errorText.setText("No selected habits found for this week");
+            Log.w(TAG, "No selected habits found for days up to " + currentDay);
+            errorText.setText("No selected habits found for days up to " + currentDay);
             errorText.setVisibility(View.VISIBLE);
             return;
         }
 
-        showBarChart(entries, labels);
+        showBarChart(entries, displayDays);
     }
 
     private void showBarChart(List<BarEntry> entries, List<String> labels) {
@@ -171,7 +185,7 @@ public class ProgressFragment extends Fragment {
         dataSet.setValueTextSize(12f);
 
         BarData barData = new BarData(dataSet);
-        barData.setBarWidth(0.12f); // Narrow bars for 7 days
+        barData.setBarWidth(0.12f); // Narrow bars for dynamic number of days
 
         barChart.setData(barData);
         barChart.getXAxis().setValueFormatter(new ValueFormatter() {
@@ -188,7 +202,7 @@ public class ProgressFragment extends Fragment {
         barChart.getAxisLeft().setAxisMinimum(0f);
         barChart.getAxisLeft().setAxisMaximum(100f);
         barChart.getAxisRight().setEnabled(false);
-        barChart.getDescription().setText("Weekly Habit Completion");
+        barChart.getDescription().setText("Habit Completion Up to Today");
         barChart.setFitBars(true);
         barChart.setVisibility(View.VISIBLE);
         barChart.animateY(1000);

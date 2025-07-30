@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.*;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -94,7 +95,9 @@ public class HomeFragment extends Fragment {
                             .setTitle("Delete Habit")
                             .setMessage("Are you sure you want to delete this habit?")
                             .setPositiveButton("Yes", (dialog, which) -> {
-                                FirebaseFirestore.getInstance()
+                                String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                                db.collection("users")
+                                        .document(userId)
                                         .collection("habits")
                                         .document(habit.getId())
                                         .delete()
@@ -169,6 +172,8 @@ public class HomeFragment extends Fragment {
 
 
                     for (DocumentSnapshot doc : value.getDocuments()) {
+                        if (!doc.exists()) continue; // ✅ skip non-existing doc
+
                         HabitModel habit = doc.toObject(HabitModel.class);
                         if (habit != null) {
                             habit.setId(doc.getId());
