@@ -95,10 +95,8 @@ public class HomeFragment extends Fragment {
                             .setTitle("Delete Habit")
                             .setMessage("Are you sure you want to delete this habit?")
                             .setPositiveButton("Yes", (dialog, which) -> {
-                                String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                                db.collection("users")
-                                        .document(userId)
-                                        .collection("habits")
+                                FirebaseAuth.getInstance();
+                                db.collection("habits")
                                         .document(habit.getId())
                                         .delete()
                                         .addOnSuccessListener(unused -> {
